@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gamble Game BYKA_AUTH</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h1, h3 {
+            color: #444;
+        }
+
+        label {
+            font-weight: bold;
+        }
+
+        select, input, button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        button {
+            background-color: #007BFF;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #nameList {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        #nameList li {
+            background-color: #e9e9e9;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 5px;
+        }
+
+        #resultText {
+            font-size: 24px;
+            text-align: center;
+            margin-bottom: 20px;
+            color: #444;
+            font-weight: bold;
+        }
+
+        .section {
+            margin-bottom: 20px;
+        }
+
+        .name-section, .money-section {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+
+        .name-section div, .money-section div {
+            flex: 1;
+            margin-right: 10px;
+        }
+
+        .name-section div:last-child, .money-section div:last-child {
+            margin-right: 0;
+        }
+
+        .animation {
+            font-size: 32px;
+            font-weight: bold;
+            color: #007BFF;
+            text-align: center;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Gamble Website BYKA_AUTH</h1>
+
+    <div class="section color-section">
+        <label for="colorSelector">Pick Color:</label>
+        <select id="colorSelector">
+            <option value="Red">Red</option>
+            <option value="Black">Black</option>
+        </select>
+        <button id="addGreenButton">Add Green (5%)</button>
+    </div>
+
+    <div class="section">
+        <label for="resultText">Result:</label>
+        <span id="resultText">[-----]</span>
+    </div>
+
+    <div class="section">
+        <button id="pickRandom">Pick Random</button>
+    </div>
+
+    <div class="section name-section">
+        <div>
+            <label for="enterNameInput">Enter Name:</label>
+            <input type="text" id="enterNameInput" placeholder="Enter Name">
+        </div>
+        <div>
+            <button id="addNameButton">Add Name</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <label for="nameSelector">Select Name:</label>
+        <select id="nameSelector">
+            <option value="">--Select Name--</option>
+        </select>
+    </div>
+
+    <div class="section money-section">
+        <div>
+            <label for="moneyInput">Money to bet:</label>
+            <input type="number" id="moneyInput" placeholder="Enter Amount">
+        </div>
+        <div>
+            <label for="moneyChangeInput">Change Money:</label>
+            <input type="number" id="moneyChangeInput" placeholder="New Amount">
+            <button id="changeMoneyButton">Change Money</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>Name List</h3>
+        <ul id="nameList"></ul>
+    </div>
+
+    <div class="section">
+        <button id="removeNameButton">Remove Selected Name</button>
+    </div>
+    <div class="section">
+    <button id="alwaysWinButton">Always Win</button>
+    <button id="alwaysLoseButton">Always Lose</button>
+</div>
+</div>
+
+<script>
+// Password Protection
+const sitePassword = "GAMBLE123KA";
+
+document.addEventListener("DOMContentLoaded", () => {
+    // Prompt the user for a password
+    const userPassword = prompt("Enter the site password to access:");
+
+    if (userPassword !== sitePassword) {
+        alert("Incorrect password. You are not authorized to view this site.");
+        document.body.innerHTML = "<h1>Access Denied</h1>";
+    } else {
+        alert("Welcome to Gamble!");
+    }
+});
+
+// Rest of your JavaScript code goes below...
+// Global Variables
+const colorSelector = document.getElementById('colorSelector');
+const nameSelector = document.getElementById('nameSelector');
+const resultText = document.getElementById('resultText');
+const nameListElement = document.getElementById('nameList');
+let colors = ["Red", "Black"];
+let nameList = JSON.parse(localStorage.getItem('nameList')) || []; // Load from local storage
+let alwaysWin = false;
+let alwaysLose = false;
+
+// Save List to Local Storage
+function saveListToLocalStorage() {
+    localStorage.setItem('nameList', JSON.stringify(nameList));
+}
+
+// Update Name List Display
+function updateNameList() {
+    nameListElement.innerHTML = '';
+    nameSelector.innerHTML = '<option value="">--Select Name--</option>';
+    nameList.forEach((item) => {
+        // Update list display
+        const li = document.createElement('li');
+        li.textContent = `ID: ${item.id}, Name: ${item.name}, Money: $${item.money.toLocaleString()}`;
+        nameListElement.appendChild(li);
+
+        // Update name selectors
+        const nameOption = document.createElement('option');
+        nameOption.value = item.name;
+        nameOption.textContent = item.name;
+        nameSelector.appendChild(nameOption);
+    });
+}
+
+// Add Name
+document.getElementById('addNameButton').addEventListener('click', () => {
+    const nameInput = document.getElementById('enterNameInput');
+    const name = nameInput.value.trim();
+
+    if (!name) {
+        alert('Please enter a valid name!');
+        return;
+    }
+
+    // Generate a new ID and add the name with default money of $100
+    const id = nameList.length > 0 ? nameList[nameList.length - 1].id + 1 : 1;
+    nameList.push({ id, name, money: 100 });
+
+    // Save list to local storage
+    saveListToLocalStorage();
+    updateNameList();
+
+    // Clear input field
+    nameInput.value = '';
+});
+
+// Change Money
+document.getElementById('changeMoneyButton').addEventListener('click', () => {
+    const selectedName = nameSelector.value;
+    const newMoney = parseInt(document.getElementById('moneyChangeInput').value, 10);
+
+    if (!selectedName || isNaN(newMoney)) {
+        alert('Please select a name and enter a valid amount!');
+        return;
+    }
+
+    const person = nameList.find(n => n.name === selectedName);
+    if (person) {
+        person.money = newMoney;
+        saveListToLocalStorage();
+        updateNameList();
+    }
+
+    // Clear money input
+    document.getElementById('moneyChangeInput').value = '';
+});
+
+// Remove Name and Reassign IDs
+document.getElementById('removeNameButton').addEventListener('click', () => {
+    const selectedName = nameSelector.value;
+
+    if (!selectedName) {
+        alert('Please select a name to remove!');
+        return;
+    }
+
+    // Remove selected name from the list
+    nameList = nameList.filter(n => n.name !== selectedName);
+
+    // Reassign IDs after removal
+    nameList.forEach((item, index) => {
+        item.id = index + 1; // Reassign IDs starting from 1
+    });
+
+    // Save list to local storage
+    saveListToLocalStorage();
+    updateNameList();
+});
+
+// Add/Remove Green Color
+document.getElementById('addGreenButton').addEventListener('click', () => {
+    if (colors.includes('Green')) {
+        colors = colors.filter(color => color !== 'Green');
+        alert('Green removed from the colors!');
+    } else {
+        colors.push('Green');
+        alert('Green added to the colors!');
+    }
+});
+
+// Pick Random Color with Animation
+document.getElementById('pickRandom').addEventListener('click', () => {
+    const selectedColor = colorSelector.value;
+
+    // Define weights based on selected colors
+    let weights = {};
+    if (colors.includes('Green')) {
+        weights = {
+            "Red": 47.5,
+            "Black": 47.5,
+            "Green": 5
+        };
+    } else {
+        weights = {
+            "Red": selectedColor === "Red" ? 50 : 50,
+            "Black": selectedColor === "Black" ? 50 : 50
+        };
+    }
+
+    // Perform the animation regardless of Always Win or Always Lose
+    let colorsArray = Object.keys(weights);
+    let count = 0;
+
+    const interval = setInterval(() => {
+        // Pick a random color during the animation
+        const randomIndex = Math.floor(Math.random() * colorsArray.length);
+        resultText.textContent = `[${colorsArray[randomIndex]}]`;
+        count++;
+
+        if (count >= 10) {
+            clearInterval(interval);
+
+            // Determine the final result based on Always Win/Always Lose
+            let pickedColor;
+            if (alwaysWin) {
+                pickedColor = selectedColor; // Always win
+            } else if (alwaysLose) {
+                pickedColor = colors.find(color => color !== selectedColor); // Always lose
+            } else {
+                // Perform the final color selection with weights
+                const colorChance = Math.random() * 100;
+                let accumulatedChance = 0;
+                for (let color of colorsArray) {
+                    accumulatedChance += weights[color];
+                    if (colorChance < accumulatedChance) {
+                        pickedColor = color;
+                        break;
+                    }
+                }
+            }
+
+            resultText.textContent = `[${pickedColor}]`;
+            handleOutcome(pickedColor);
+        }
+    }, 100); // Animation speed
+});
+
+// Handle Outcome
+function handleOutcome(pickedColor) {
+    const selectedColor = colorSelector.value;
+    const selectedName = nameSelector.value;
+    const moneyToChange = parseInt(document.getElementById('moneyInput').value, 10);
+
+    if (!selectedName || isNaN(moneyToChange)) {
+        alert('Please select a name and enter a valid amount!');
+        return;
+    }
+
+    const person = nameList.find(n => n.name === selectedName);
+    if (person) {
+        if (pickedColor === "Green") {
+            alert("You won! Green was selected.");
+        } else if (pickedColor === selectedColor) {
+            person.money += moneyToChange;
+            alert(`${selectedName} wins! Added $${moneyToChange}`);
+        } else {
+            person.money -= moneyToChange;
+            alert(`${selectedName} loses! Subtracted $${moneyToChange}`);
+        }
+
+        if (person.money < 0) person.money = 0; // Ensure no negative money
+        saveListToLocalStorage();
+        updateNameList();
+    }
+}
+
+// Always Win Button
+document.getElementById('alwaysWinButton').addEventListener('click', () => {
+    alwaysWin = true;
+    alwaysLose = false;
+    alert('You will always win!');
+});
+
+// Always Lose Button
+document.getElementById('alwaysLoseButton').addEventListener('click', () => {
+    alwaysLose = true;
+    alwaysWin = false;
+    alert('You will always lose!');
+});
+
+// Load Names on Page Load
+document.addEventListener('DOMContentLoaded', updateNameList);
+</script>
+
+</body>
+</html>
